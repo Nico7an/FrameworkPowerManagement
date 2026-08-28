@@ -33,6 +33,12 @@ Windows demandera l'élévation une fois — `framework_tool` parle à l'Embedde
 Controller par port I/O. Ensuite plus jamais : la tâche planifiée créée par
 l'installeur s'en charge à chaque ouverture de session.
 
+> [!TIP]
+> Un zip téléchargé par navigateur porte un Mark-of-the-Web : SmartScreen
+> affichera un avertissement sur `Installer.cmd`. Clic droit sur le **zip** →
+> Propriétés → **Débloquer**, avant de décompresser, et l'avertissement
+> disparaît.
+
 <details>
 <summary>Depuis les sources</summary>
 
