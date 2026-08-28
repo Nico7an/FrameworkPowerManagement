@@ -24,14 +24,28 @@ Cette app est un habillage de la seconde : deux clics, aucun redémarrage.
 
 ## Installation
 
-`bin\framework_tool.exe` n'est **pas** versionné ici : c'est le binaire
-officiel de Framework, l'installeur le télécharge pour toi.
+Télécharge le zip de la
+[dernière release](https://github.com/Nico7an/FrameworkPowerManagement/releases/latest),
+décompresse, double-clique sur **`Installer.cmd`**. Tout est dedans, y compris
+`framework_tool.exe` : rien d'autre à télécharger.
+
+Windows demandera l'élévation une fois — `framework_tool` parle à l'Embedded
+Controller par port I/O. Ensuite plus jamais : la tâche planifiée créée par
+l'installeur s'en charge à chaque ouverture de session.
+
+<details>
+<summary>Depuis les sources</summary>
+
+`bin\framework_tool.exe` n'est pas versionné dans le dépôt ;
+`install.ps1` le télécharge s'il est absent.
 
 ```powershell
 git clone https://github.com/Nico7an/FrameworkPowerManagement.git
 cd FrameworkPowerManagement
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+</details>
 
 L'installeur :
 
@@ -70,6 +84,7 @@ Limite actuelle : 80 %  ·  batterie 71 %
 
 | Chemin | Rôle |
 | --- | --- |
+| `Installer.cmd` | double-clic, présent dans le zip de release |
 | `tray.ps1` | l'app (PowerShell + WinForms, lancée par `powershell.exe` 5.1) |
 | `install.ps1` / `uninstall.ps1` | tâche planifiée et dépendance |
 | `bin\framework_tool.exe` | CLI Framework qui pilote l'EC |
