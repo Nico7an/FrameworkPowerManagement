@@ -16,7 +16,13 @@
 [CmdletBinding()]
 param(
     # Garde la console visible (débogage).
-    [switch]$ShowConsole
+    [switch]$ShowConsole,
+
+    # Dossier d'état (config.json, tray.log). Par défaut %LOCALAPPDATA%.
+    # À partager entre sessions Windows : la limite vit dans l'Embedded
+    # Controller, elle est donc globale à la machine — deux instances doivent
+    # lire la même préférence, sinon chacune réapplique la sienne au sondage.
+    [string]$StateDir
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +49,7 @@ if (-not $ShowConsole) {
 # ---------------------------------------------------------------- chemins / log
 
 $Root       = Split-Path -Parent $PSCommandPath
-$AppDir     = Join-Path $env:LOCALAPPDATA 'FrameworkChargeTray'
+$AppDir     = if ($StateDir) { $StateDir } else { Join-Path $env:LOCALAPPDATA 'FrameworkChargeTray' }
 $ConfigPath = Join-Path $AppDir 'config.json'
 $LogPath    = Join-Path $AppDir 'tray.log'
 
@@ -264,6 +270,9 @@ function Sync-ChargeState {
     param([switch]$Reapply)
     $script:LastPoll = Get-Date
     try {
+        # Avec un dossier d'état partagé, l'autre session a pu changer la
+        # préférence depuis notre dernier sondage : on relit avant de juger.
+        Import-Config
         $hardware = Get-ChargeLimit
         $desired  = [int]$script:Cfg.desiredLimit
         if ($Reapply -and $desired -gt 0 -and $hardware -ne $desired) {
