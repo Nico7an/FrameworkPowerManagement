@@ -1,3 +1,6 @@
-# framework_tool.exe n'est pas redistribué : install.ps1 le télécharge depuis
-# les releases officielles de FrameworkComputer/framework-system.
+# framework_tool.exe n'est pas redistribué dans le dépôt : build.ps1 l'embarque
+# en ressource, récupère-le sur les releases de framework-system.
 bin/
+
+# Sortie de compilation.
+dist/

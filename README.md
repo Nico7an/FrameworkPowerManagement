@@ -4,6 +4,27 @@ Petite icône de zone de notification pour basculer la limite de charge de la
 batterie du Framework Laptop entre **100 %** et la **valeur par défaut du BIOS**
 (80 % sur cette machine). C'est tout ce qu'elle fait.
 
+## Installation
+
+Télécharge `FrameworkChargeTray.exe` depuis la
+[dernière release](https://github.com/Nico7an/FrameworkPowerManagement/releases/latest)
+et lance-le. Un seul fichier, rien à décompresser, rien d'autre à récupérer :
+`framework_tool.exe` est embarqué dedans.
+
+Windows demandera l'élévation — `framework_tool` parle à l'Embedded Controller
+par port I/O, c'est structurel. Au premier lancement l'app enregistre une tâche
+planifiée qui la relancera élevée à chaque ouverture de session : tu ne reverras
+plus l'invite.
+
+> [!TIP]
+> Un exe téléchargé par navigateur porte un Mark-of-the-Web et SmartScreen
+> affichera « Windows a protégé votre PC ». Clic droit → Propriétés →
+> **Débloquer**, ou *Informations complémentaires* → *Exécuter quand même*.
+> Le binaire n'est pas signé : il n'y a pas de certificat de signature de code
+> derrière ce petit outil.
+
+Pour retirer la tâche de démarrage : `FrameworkChargeTray.exe --uninstall`.
+
 ## Est-ce que Windows sait déjà le faire ?
 
 Non. Windows 11 n'a aucun réglage de limite de charge dans **Paramètres →
@@ -22,57 +43,15 @@ Chez Framework, deux voies existent :
 
 Cette app est un habillage de la seconde : deux clics, aucun redémarrage.
 
-## Installation
-
-Télécharge le zip de la
-[dernière release](https://github.com/Nico7an/FrameworkPowerManagement/releases/latest),
-décompresse, double-clique sur **`Installer.cmd`**. Tout est dedans, y compris
-`framework_tool.exe` : rien d'autre à télécharger.
-
-Windows demandera l'élévation une fois — `framework_tool` parle à l'Embedded
-Controller par port I/O. Ensuite plus jamais : la tâche planifiée créée par
-l'installeur s'en charge à chaque ouverture de session.
-
-> [!TIP]
-> Un zip téléchargé par navigateur porte un Mark-of-the-Web : SmartScreen
-> affichera un avertissement sur `Installer.cmd`. Clic droit sur le **zip** →
-> Propriétés → **Débloquer**, avant de décompresser, et l'avertissement
-> disparaît.
-
-<details>
-<summary>Depuis les sources</summary>
-
-`bin\framework_tool.exe` n'est pas versionné dans le dépôt ;
-`install.ps1` le télécharge s'il est absent.
-
-```powershell
-git clone https://github.com/Nico7an/FrameworkPowerManagement.git
-cd FrameworkPowerManagement
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-</details>
-
-L'installeur :
-
-1. télécharge `bin\framework_tool.exe` (outil officiel Framework, `v0.6.5`) s'il
-   est absent — `-LatestTool` prend la dernière version publiée ;
-2. vérifie que l'accès à l'EC répond ;
-3. enregistre la tâche planifiée `FrameworkChargeTray` — ouverture de session,
-   autorisations maximales, 20 s de délai — puis lance l'app.
-
-L'élévation est obligatoire : `framework_tool` parle à l'EC par port I/O. Passer
-par une tâche planifiée évite une invite UAC à chaque démarrage de session.
-
 ## Utilisation
 
 Clic gauche ou droit sur l'icône batterie :
 
 ```
-Limite actuelle : 80 %  ·  batterie 71 %
+Limite : 80 %  ·  batterie 71 %
 ─────────────────────────────────────────
-   Charge maximale 100 %
-✓  Par défaut Framework (80 %)
+✓  Charge maximale 100 %
+   Par défaut Framework (80 %)
 ─────────────────────────────────────────
    Actualiser
    Quitter
@@ -88,40 +67,54 @@ Limite actuelle : 80 %  ·  batterie 71 %
 
 ## Fichiers
 
+L'app est un exécutable unique. Elle dépose son état sous
+`C:\ProgramData\FrameworkChargeTray\` :
+
 | Chemin | Rôle |
 | --- | --- |
-| `Installer.cmd` | double-clic, présent dans le zip de release |
-| `tray.ps1` | l'app (PowerShell + WinForms, lancée par `powershell.exe` 5.1) |
-| `install.ps1` / `uninstall.ps1` | tâche planifiée et dépendance |
-| `bin\framework_tool.exe` | CLI Framework qui pilote l'EC |
-| `%LOCALAPPDATA%\FrameworkChargeTray\config.json` | préférence, valeur par défaut, période de sondage |
-| `%LOCALAPPDATA%\FrameworkChargeTray\tray.log` | journal (une erreur silencieuse s'y retrouve) |
+| `framework_tool.exe` | extrait de la ressource embarquée au premier lancement |
+| `config.txt` | préférence, valeur par défaut, période de sondage |
+| `tray.log` | journal (une erreur silencieuse s'y retrouve) |
 
-`config.json` est éditable : `pollSeconds` pour la période de sondage, `exePath`
-si `framework_tool.exe` vit ailleurs.
+L'état vit sous `ProgramData` et non sous `%LOCALAPPDATA%` **à dessein** : la
+limite de charge est un réglage matériel *global à la machine*. Deux sessions
+Windows ouvertes en même temps partagent donc la même préférence au lieu de se
+la réappliquer mutuellement à chaque sondage.
 
-## Désinstallation
+## Compilation depuis les sources
+
+Aucun SDK requis : le `csc.exe` du .NET Framework 4.x livré avec Windows suffit.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
+git clone https://github.com/Nico7an/FrameworkPowerManagement.git
+cd FrameworkPowerManagement
+# place framework_tool.exe dans bin\, puis :
+powershell -ExecutionPolicy Bypass -File .\src\build.ps1
 ```
 
-Options : `-RestoreDefault` remet la limite par défaut dans l'EC avant de partir,
-`-Purge` supprime préférences et journal. Sans option, la limite en cours est
-laissée telle quelle — elle reviendra à la valeur du BIOS au prochain
-redémarrage.
+`bin\framework_tool.exe` n'est pas versionné : récupère-le dans les
+[releases de framework-system](https://github.com/FrameworkComputer/framework-system/releases).
+Le build l'embarque en ressource et produit `dist\FrameworkChargeTray.exe`.
+
+<details>
+<summary>Version PowerShell (héritée)</summary>
+
+`tray.ps1`, `install.ps1` et `uninstall.ps1` sont l'implémentation d'origine,
+conservée pour référence. Elle fait la même chose mais exige que les `.ps1`
+restent en **UTF-8 avec BOM**, sinon PowerShell 5.1 lit les accents en ANSI.
+`-StateDir` y déporte l'état pour le partager entre sessions.
+
+</details>
 
 ## Limites connues
 
-- Les scripts `.ps1` doivent rester en **UTF-8 avec BOM** : PowerShell 5.1 lit
-  sinon les accents en ANSI.
 - `framework_tool` attend un `ENTER` quand sa sortie est redirigée ; l'app ferme
   son entrée standard pour cela, avec un délai de garde de 10 s.
 - Windows 11 range les nouvelles icônes dans le dépassement (chevron `^`) :
   glisse-la dans la barre si tu la veux visible en permanence.
 - Sur certaines versions de BIOS, la communauté Framework signale un plafond
-  parfois ignoré par l'EC ; l'app vérifie la valeur relue après écriture et
-  signale l'écart par une bulle d'erreur.
+  parfois ignoré par l'EC ; l'app relit la valeur après écriture et signale
+  l'écart par une bulle d'erreur.
 
 ## Sources
 
@@ -134,7 +127,6 @@ redémarrage.
 
 MIT — voir [LICENSE](LICENSE).
 
-`framework_tool.exe` n'est pas redistribué par ce dépôt : il est
-téléchargé depuis les releases de
-[FrameworkComputer/framework-system](https://github.com/FrameworkComputer/framework-system/releases)
-et reste soumis à sa propre licence.
+`framework_tool.exe`, embarqué dans l'exécutable publié, est redistribué sous
+licence BSD 3-Clause (Framework Computer Inc), reproduite intégralement dans
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) conformément à sa clause 2.
